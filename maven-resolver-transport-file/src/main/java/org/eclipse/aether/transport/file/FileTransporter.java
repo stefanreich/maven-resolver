@@ -22,6 +22,7 @@ package org.eclipse.aether.transport.file;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.spi.connector.transport.AbstractTransporter;

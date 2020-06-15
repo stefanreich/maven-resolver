@@ -71,8 +71,7 @@ final class PartialFile
         }
 
         private static FileLock lock( File lockFile, File partFile, int requestTimeout, RemoteAccessChecker checker,
-                                      AtomicBoolean concurrent )
-            throws Exception
+                                      AtomicBoolean concurrent ) throws Exception
         {
             boolean interrupted = false;
             try
@@ -141,19 +140,15 @@ final class PartialFile
                 if ( lock == null )
                 {
                     raf.close();
-                    raf = null;
                 }
             }
             catch ( OverlappingFileLockException e )
             {
                 close( raf );
-                raf = null;
-                lock = null;
             }
             catch ( RuntimeException | IOException e )
             {
                 close( raf );
-                raf = null;
                 if ( !lockFile.delete() )
                 {
                     lockFile.deleteOnExit();
@@ -200,33 +195,15 @@ final class PartialFile
 
         public void close() throws IOException
         {
-            Channel channel = null;
-            try
+            try ( Channel channel = lock.channel() ) 
             {
-                channel = lock.channel();
                 lock.release();
-                channel.close();
-                channel = null;
             }
             finally
             {
-                try
+                if ( !lockFile.delete() )
                 {
-                    if ( channel != null )
-                    {
-                        channel.close();
-                    }
-                }
-                catch ( final IOException e )
-                {
-                    // Suppressed due to an exception already thrown in the try block.
-                }
-                finally
-                {
-                    if ( !lockFile.delete() )
-                    {
-                        lockFile.deleteOnExit();
-                    }
+                    lockFile.deleteOnExit();
                 }
             }
         }

@@ -95,17 +95,20 @@ public final class ChecksumUtils
     /**
      * Calculates checksums for the specified file.
      * 
-     * @param dataFile The file for which to calculate checksums, must not be {@code null}.
-     * @param algos The names of checksum algorithms (cf. {@link MessageDigest#getInstance(String)} to use, must not be
+     * @param dataFile the file for which to calculate checksums, must not be {@code null}.
+     * @param algos the names of checksum algorithms (cf. {@link MessageDigest#getInstance(String)} to use, must not be
      *            {@code null}.
-     * @return The calculated checksums, indexed by algorithm name, or the exception that occurred while trying to
+     * @return the calculated checksums, indexed by algorithm name, or the exception that occurred while trying to
      *         calculate it, never {@code null}.
-     * @throws IOException If the data file could not be read.
+     * @throws IOException if the data file could not be read
      */
     public static Map<String, Object> calc( File dataFile, Collection<String> algos )
                     throws IOException
     {
-       return calc( new FileInputStream( dataFile ), algos );
+       try ( FileInputStream in = new FileInputStream( dataFile ) )
+       {
+         return calc( in, algos );
+       }
     }
 
     
@@ -134,19 +137,16 @@ public final class ChecksumUtils
             }
         }
 
-        try ( InputStream in = data )
+        for ( byte[] buffer = new byte[ 32 * 1024 ];; )
         {
-            for ( byte[] buffer = new byte[ 32 * 1024 ];; )
+            int read = data.read( buffer );
+            if ( read < 0 )
             {
-                int read = in.read( buffer );
-                if ( read < 0 )
-                {
-                    break;
-                }
-                for ( MessageDigest digest : digests.values() )
-                {
-                    digest.update( buffer, 0, read );
-                }
+                break;
+            }
+            for ( MessageDigest digest : digests.values() )
+            {
+                digest.update( buffer, 0, read );
             }
         }
 

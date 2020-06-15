@@ -171,9 +171,11 @@ public class JreProxySelectorTest
         RemoteRepository repo2 = new RemoteRepository.Builder( repo ).setProxy( proxy ).build();
         Authentication auth = proxy.getAuthentication();
         assertNotNull( auth );
-        AuthenticationContext authCtx = AuthenticationContext.forProxy( new DefaultRepositorySystemSession(), repo2 );
-        assertEquals( "proxyuser", authCtx.get( AuthenticationContext.USERNAME ) );
-        assertEquals( "proxypass", authCtx.get( AuthenticationContext.PASSWORD ) );
+        try ( AuthenticationContext authCtx = AuthenticationContext.forProxy( new DefaultRepositorySystemSession(), repo2 ) )
+        {
+          assertEquals( "proxyuser", authCtx.get( AuthenticationContext.USERNAME ) );
+          assertEquals( "proxypass", authCtx.get( AuthenticationContext.PASSWORD ) );
+        }
     }
 
 }

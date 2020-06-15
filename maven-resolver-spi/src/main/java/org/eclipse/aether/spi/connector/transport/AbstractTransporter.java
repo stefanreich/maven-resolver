@@ -81,61 +81,38 @@ public abstract class AbstractTransporter
      * Subclasses might want to invoke this utility method from within their {@link #implGet(GetTask)} to avoid
      * boilerplate I/O code.
      * 
-     * @param task The download to perform, must not be {@code null}.
-     * @param is The input stream to download the data from, must not be {@code null}.
+     * @param task the download to perform, must not be {@code null}.
+     * @param is the input stream to download the data from, must not be {@code null}.
      * @param close {@code true} if the supplied input stream should be automatically closed, {@code false} to leave the
      *            stream open.
-     * @param length The size in bytes of the downloaded resource or {@code -1} if unknown, not to be confused with the
+     * @param length the size in bytes of the downloaded resource or {@code -1} if unknown, not to be confused with the
      *            length of the supplied input stream which might be smaller if the download is resumed.
      * @param resume {@code true} if the download resumes from {@link GetTask#getResumeOffset()}, {@code false} if the
      *            download starts at the first byte of the resource.
-     * @throws IOException If the transfer encountered an I/O error.
-     * @throws TransferCancelledException If the transfer was cancelled.
+     * @throws IOException if the transfer encountered an I/O error
+     * @throws TransferCancelledException if the transfer was cancelled
      */
     protected void utilGet( GetTask task, InputStream is, boolean close, long length, boolean resume )
         throws IOException, TransferCancelledException
     {
-        OutputStream os = null;
-        try
+        
+        try ( OutputStream os = task.newOutputStream( resume ) )
         {
-            os = task.newOutputStream( resume );
             task.getListener().transportStarted( resume ? task.getResumeOffset() : 0L, length );
             copy( os, is, task.getListener() );
-            os.close();
-            os = null;
-
-            if ( close )
-            {
-                is.close();
-                is = null;
-            }
         }
         finally
-        {
+        {      
             try
             {
-                if ( os != null )
+                if ( close && is != null )
                 {
-                    os.close();
+                    is.close();
                 }
             }
             catch ( final IOException e )
             {
                 // Suppressed due to an exception already thrown in the try block.
-            }
-            finally
-            {
-                try
-                {
-                    if ( close && is != null )
-                    {
-                        is.close();
-                    }
-                }
-                catch ( final IOException e )
-                {
-                    // Suppressed due to an exception already thrown in the try block.
-                }
             }
         }
     }
