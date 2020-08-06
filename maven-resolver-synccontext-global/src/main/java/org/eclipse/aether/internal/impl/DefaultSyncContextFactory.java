@@ -19,44 +19,18 @@ package org.eclipse.aether.internal.impl;
  * under the License.
  */
 
-import java.util.Collection;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.eclipse.aether.RepositorySystemSession;
-import org.eclipse.aether.SyncContext;
-import org.eclipse.aether.artifact.Artifact;
-import org.eclipse.aether.impl.SyncContextFactory;
-import org.eclipse.aether.metadata.Metadata;
+import org.eclipse.aether.synccontext.GlobalSyncContextFactory;
 
 /**
- * A factory to create synchronization contexts. This default implementation actually does not provide any real
- * synchronization but merely completes the repository system.
+ * This is a shim to override (shadow) the actual {@code DefaultSyncContextFactory}} via ext classpath.
  */
 @Named
 @Singleton
 public class DefaultSyncContextFactory
-    implements SyncContextFactory
+    extends GlobalSyncContextFactory
 {
-
-    public SyncContext newInstance( RepositorySystemSession session, boolean shared )
-    {
-        return new DefaultSyncContext();
-    }
-
-    static class DefaultSyncContext
-        implements SyncContext
-    {
-
-        public void acquire( Collection<? extends Artifact> artifact, Collection<? extends Metadata> metadata )
-        {
-        }
-
-        public void close()
-        {
-        }
-
-    }
 
 }
