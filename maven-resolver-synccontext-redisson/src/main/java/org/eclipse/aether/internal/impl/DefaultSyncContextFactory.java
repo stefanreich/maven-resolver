@@ -22,7 +22,7 @@ package org.eclipse.aether.internal.impl;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.eclipse.aether.synccontext.GlobalSyncContextFactory;
+import org.eclipse.aether.synccontext.RedissonSyncContextFactory;
 
 /**
  * This is a shim to override (shadow) the actual {@code DefaultSyncContextFactory}} via ext classpath.
@@ -30,7 +30,7 @@ import org.eclipse.aether.synccontext.GlobalSyncContextFactory;
 @Named
 @Singleton
 public class DefaultSyncContextFactory
-    extends GlobalSyncContextFactory
+    extends RedissonSyncContextFactory
 {
 
 }

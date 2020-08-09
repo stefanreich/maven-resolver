@@ -90,7 +90,7 @@
     <module>maven-resolver-transport-http</module>
     <module>maven-resolver-transport-wagon</module>
     <module>maven-resolver-demos</module>
-    <module>maven-resolver-synccontext-global</module>
+    <module>maven-resolver-synccontext-redisson</module>
   </modules>
 
   <dependencyManagement>

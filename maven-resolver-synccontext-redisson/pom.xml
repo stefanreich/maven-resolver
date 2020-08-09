@@ -28,16 +28,17 @@
     <version>1.5.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>maven-resolver-synccontext-global</artifactId>
+  <artifactId>maven-resolver-synccontext-redisson</artifactId>
 
-  <name>Maven Artifact Resolver Sync Context Global</name>
+  <name>Maven Artifact Resolver Sync Context Redisson</name>
   <description>
-      A sync context implementation using a global fair lock.
+      A sync context implementation using Redisson distributed locks.
   </description>
 
   <properties>
-    <Automatic-Module-Name>org.apache.maven.resolver.synccontext.global</Automatic-Module-Name>
+    <Automatic-Module-Name>org.apache.maven.resolver.synccontext.redisson</Automatic-Module-Name>
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
+    <javaVersion>8</javaVersion>
   </properties>
 
   <dependencies>
@@ -50,6 +51,10 @@
       <artifactId>maven-resolver-impl</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.maven.resolver</groupId>
+      <artifactId>maven-resolver-util</artifactId>
+    </dependency>
+    <dependency>
       <groupId>javax.inject</groupId>
       <artifactId>javax.inject</artifactId>
       <scope>provided</scope>
@@ -58,6 +63,11 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.redisson</groupId>
+      <artifactId>redisson</artifactId>
+      <version>3.13.3</version>
     </dependency>
   </dependencies>
 
