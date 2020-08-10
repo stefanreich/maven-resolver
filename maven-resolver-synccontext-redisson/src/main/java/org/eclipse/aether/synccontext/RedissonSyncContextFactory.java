@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * A factory to create synchronization contexts. This implementation uses Redis, more specifically
  * its {@link RReadWriteLock}. It locks -- very fine-grained -- down to an artifact/metadata version
  * if required. <br>
- * This factory is considered experimental.
+ * This factory is considered experimental and is intended to be used as a singleton.
  */
 public class RedissonSyncContextFactory implements SyncContextFactory {
 
@@ -70,15 +70,10 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RedissonSyncContextFactory.class);
 
-    private final RedissonClient redissonClient;
-    private final String localhostDiscriminator;
+    private static final RedissonClient redissonClient = createRedissonClient();
+    private static final String localhostDiscriminator = createLocalhostDiscriminator();
 
-    public RedissonSyncContextFactory() {
-        this.redissonClient = createRedissonClient();
-        this.localhostDiscriminator = createLocalhostDiscriminator();
-    }
-
-    private RedissonClient createRedissonClient() {
+    private static RedissonClient createRedissonClient() {
         Path configFilePath = null;
 
         String configFile = ConfigUtils.getString(System.getProperties(), null, CONFIG_PROP_CONFIG_FILE);
@@ -120,7 +115,7 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
         return redissonClient;
     }
 
-    private String createLocalhostDiscriminator() {
+    private static String createLocalhostDiscriminator() {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
@@ -158,9 +153,6 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
 
         public void acquire(Collection<? extends Artifact> artifacts,
                 Collection<? extends Metadata> metadatas) {
-            String discriminator = createDiscriminator();
-            LOGGER.trace("Using Redis key discriminator '{}' during this session", discriminator);
-
             // Deadlock prevention: https://stackoverflow.com/a/16780988/696632
             // We must acquire multiple locks always in the same order!
             Collection<String> keys = new TreeSet<>();
@@ -192,6 +184,13 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
                     keys.add(key);
                 }
             }
+
+            if (keys.isEmpty()) {
+            	return;
+            }
+
+            String discriminator = createDiscriminator();
+            LOGGER.trace("Using Redis key discriminator '{}' during this session", discriminator);
 
             LOGGER.trace("Need {} {} lock(s) for {}", keys.size(), shared ? "read" : "write", keys);
 
@@ -244,6 +243,10 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
         }
 
         public void close() {
+        	if (locks.isEmpty()) {
+        		return;
+        	}
+
             // Release locks in reverse insertion order
             Deque<String> keys = new LinkedList<>(locks.keySet());
             Iterator<String> keysIter = keys.descendingIterator();
