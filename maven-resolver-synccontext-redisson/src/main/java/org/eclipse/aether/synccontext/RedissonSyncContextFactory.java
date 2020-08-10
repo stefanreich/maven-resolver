@@ -119,7 +119,7 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
-            LOGGER.trace("Failed to calculate localhost descriminator, using '{}'",
+            LOGGER.warn("Failed to calculate localhost descriminator, using '{}'",
                     DEFAULT_DISCRIMINATOR, e);
             return DEFAULT_DISCRIMINATOR;
         }
@@ -186,7 +186,7 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
             }
 
             if (keys.isEmpty()) {
-            	return;
+                return;
             }
 
             String discriminator = createDiscriminator();
@@ -194,12 +194,17 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
 
             LOGGER.trace("Need {} {} lock(s) for {}", keys.size(), shared ? "read" : "write", keys);
 
+            int acquiredLockCount = 0;
+            int reacquiredLockCount = 0;
             for (String key : keys) {
                 RReadWriteLock rwLock = locks.get(key);
                 if (rwLock == null) {
                     rwLock = redissonClient
                             .getReadWriteLock(KEY_PREFIX + discriminator + ":" + key);
                     locks.put(key, rwLock);
+                    acquiredLockCount++;
+                } else {
+                    reacquiredLockCount++;
                 }
 
                 RLock actualLock = shared ? rwLock.readLock() : rwLock.writeLock();
@@ -210,9 +215,8 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
                 // attempts
                 actualLock.lock();
             }
-            // TODO This is probably wrong. In a subsequent (reentrant) call we already have acquired
-            // locks previously. We need to could locks for a single acquire call only
-            LOGGER.trace("Total locks acquired: {}", locks.size());
+            LOGGER.trace("Total new locks acquired: {}, total existing locks reacquired: {}",
+                    acquiredLockCount, reacquiredLockCount);
         }
 
         private String createDiscriminator() {
@@ -233,6 +237,7 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
 
                     return String.valueOf(checksum);
                 } catch (Exception e) {
+                    // TODO Should this be warn?
                     LOGGER.trace("Failed to calculate discriminator digest, using '{}'",
                             DEFAULT_DISCRIMINATOR_DIGEST, e);
                     return DEFAULT_DISCRIMINATOR_DIGEST;
@@ -243,9 +248,9 @@ public class RedissonSyncContextFactory implements SyncContextFactory {
         }
 
         public void close() {
-        	if (locks.isEmpty()) {
-        		return;
-        	}
+            if (locks.isEmpty()) {
+                return;
+            }
 
             // Release locks in reverse insertion order
             Deque<String> keys = new LinkedList<>(locks.keySet());
