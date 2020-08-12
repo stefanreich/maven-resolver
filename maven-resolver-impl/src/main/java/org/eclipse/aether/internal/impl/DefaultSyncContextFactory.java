@@ -29,6 +29,8 @@ import org.eclipse.aether.SyncContext;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.impl.SyncContextFactory;
 import org.eclipse.aether.metadata.Metadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A factory to create synchronization contexts. This default implementation actually does not provide any real
@@ -40,8 +42,19 @@ public class DefaultSyncContextFactory
     implements SyncContextFactory
 {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger( DefaultSyncContextFactory.class );
+
+    public DefaultSyncContextFactory()
+    {
+        LOGGER.trace( "TCCL '{}', id '{}'", Thread.currentThread().getContextClassLoader(),
+                      System.identityHashCode( Thread.currentThread().getContextClassLoader() ) );
+        LOGGER.trace( "CCL '{}', id '{}'", getClass().getClassLoader(),
+                      System.identityHashCode( getClass().getClassLoader() ) );
+    }
+
     public SyncContext newInstance( RepositorySystemSession session, boolean shared )
     {
+        LOGGER.trace( "Instance: {}, identity: {}", this, System.identityHashCode( getClass() ) );
         return new DefaultSyncContext();
     }
 

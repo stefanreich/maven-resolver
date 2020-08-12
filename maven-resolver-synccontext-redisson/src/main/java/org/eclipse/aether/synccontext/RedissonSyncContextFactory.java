@@ -82,6 +82,14 @@ public class RedissonSyncContextFactory
     private static RedissonClient redissonClient = createRedissonClient();
     private static String localhostDiscriminator = createLocalhostDiscriminator();
 
+    public RedissonSyncContextFactory()
+    {
+        LOGGER.trace( "TCCL '{}', id '{}'", Thread.currentThread().getContextClassLoader(),
+                      System.identityHashCode( Thread.currentThread().getContextClassLoader() ) );
+        LOGGER.trace( "CCL '{}', id '{}'", getClass().getClassLoader(),
+                      System.identityHashCode( getClass().getClassLoader() ) );
+    }
+
     private static RedissonClient createRedissonClient()
     {
         Path configFilePath = null;
@@ -154,6 +162,7 @@ public class RedissonSyncContextFactory
 
     public SyncContext newInstance( RepositorySystemSession session, boolean shared )
     {
+        LOGGER.trace( "Instance: {}, identity: {}", this, System.identityHashCode( getClass() ) );
         return new RedissonSyncContext( session, localhostDiscriminator, redissonClient, shared );
     }
 
