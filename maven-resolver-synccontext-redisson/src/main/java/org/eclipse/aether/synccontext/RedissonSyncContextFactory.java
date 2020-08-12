@@ -37,6 +37,10 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeSet;
 
+import javax.annotation.Priority;
+import javax.inject.Named;
+import javax.inject.Singleton;
+
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.SyncContext;
 import org.eclipse.aether.artifact.Artifact;
@@ -58,7 +62,11 @@ import org.slf4j.LoggerFactory;
  * if required. <br>
  * This factory is considered experimental and is intended to be used as a singleton.
  */
-public class RedissonSyncContextFactory implements SyncContextFactory
+@Named
+@Priority( Integer.MAX_VALUE )
+@Singleton
+public class RedissonSyncContextFactory
+    implements SyncContextFactory
 {
 
     private static final String DEFAULT_CONFIG_FILE_NAME = "maven-resolver-redisson.yaml";
@@ -149,7 +157,8 @@ public class RedissonSyncContextFactory implements SyncContextFactory
         return new RedissonSyncContext( session, localhostDiscriminator, redissonClient, shared );
     }
 
-    static class RedissonSyncContext implements SyncContext
+    static class RedissonSyncContext
+        implements SyncContext
     {
 
         private static final String CONFIG_DISCRIMINATOR = "aether.syncContext.redisson.discriminator";
