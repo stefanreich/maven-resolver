@@ -46,15 +46,13 @@ public class DefaultSyncContextFactory
 
     public DefaultSyncContextFactory()
     {
-        LOGGER.trace( "TCCL '{}', id '{}'", Thread.currentThread().getContextClassLoader(),
-                      System.identityHashCode( Thread.currentThread().getContextClassLoader() ) );
-        LOGGER.trace( "CCL '{}', id '{}'", getClass().getClassLoader(),
-                      System.identityHashCode( getClass().getClassLoader() ) );
+        LOGGER.trace( "TCCL: {}", Thread.currentThread().getContextClassLoader() );
+        LOGGER.trace( "CCL: {}", getClass().getClassLoader() );
     }
 
     public SyncContext newInstance( RepositorySystemSession session, boolean shared )
     {
-        LOGGER.trace( "Instance: {}, identity: {}", this, System.identityHashCode( getClass() ) );
+        LOGGER.trace( "Instance: {}", this );
         return new DefaultSyncContext();
     }
 
