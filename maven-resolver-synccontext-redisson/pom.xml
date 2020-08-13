@@ -32,7 +32,7 @@
 
   <name>Maven Artifact Resolver Sync Context Redisson</name>
   <description>
-      A sync context implementation using Redisson distributed locks.
+      A synchronization context implementation using Redisson distributed locks.
   </description>
 
   <properties>
