@@ -37,6 +37,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeSet;
 
+import javax.annotation.PreDestroy;
 import javax.annotation.Priority;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -164,6 +165,11 @@ public class RedissonSyncContextFactory
     {
         LOGGER.trace( "Instance: {}, identity: {}", this, System.identityHashCode( getClass() ) );
         return new RedissonSyncContext( session, localhostDiscriminator, redissonClient, shared );
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        LOGGER.trace( "I was shut down!" );
     }
 
     static class RedissonSyncContext
