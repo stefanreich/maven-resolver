@@ -80,8 +80,9 @@ public class RedissonSyncContextFactory
 
     private static final Logger LOGGER = LoggerFactory.getLogger( RedissonSyncContextFactory.class );
 
-    private static RedissonClient redissonClient = createRedissonClient();
-    private static String localhostDiscriminator = createLocalhostDiscriminator();
+    // We are in a singleton so these should exist only once!
+    private RedissonClient redissonClient;
+    private String localhostDiscriminator;
 
     public RedissonSyncContextFactory()
     {
@@ -89,9 +90,11 @@ public class RedissonSyncContextFactory
                       System.identityHashCode( Thread.currentThread().getContextClassLoader() ) );
         LOGGER.trace( "CCL '{}', id '{}'", getClass().getClassLoader(),
                       System.identityHashCode( getClass().getClassLoader() ) );
+        this.redissonClient = createRedissonClient();
+        this.localhostDiscriminator = createLocalhostDiscriminator();
     }
 
-    private static RedissonClient createRedissonClient()
+    private RedissonClient createRedissonClient()
     {
         Path configFilePath = null;
 
@@ -147,7 +150,7 @@ public class RedissonSyncContextFactory
         return redissonClient;
     }
 
-    private static String createLocalhostDiscriminator()
+    private String createLocalhostDiscriminator()
     {
         try
         {
