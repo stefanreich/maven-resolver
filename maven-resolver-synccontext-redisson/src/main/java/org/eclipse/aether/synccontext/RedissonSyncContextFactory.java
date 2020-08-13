@@ -171,8 +171,10 @@ public class RedissonSyncContextFactory
     }
 
     @PreDestroy
-    public void shutdown() {
-        LOGGER.trace( "I was shut down!" );
+    public void shutdown()
+    {
+        LOGGER.trace( "Shutting down Redisson client with id '{}'", redissonClient.getId() );
+        redissonClient.shutdown();
     }
 
     static class RedissonSyncContext
