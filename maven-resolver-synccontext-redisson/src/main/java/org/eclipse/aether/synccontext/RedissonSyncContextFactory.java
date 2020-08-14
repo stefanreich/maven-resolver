@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
  * A singleton factory to create synchronization contexts. This implementation uses Redisson, more
  * specifically its {@link RReadWriteLock}. It locks down to an artifact/metadata version if required.
  * <p>
- * <strong>Note: This component is still considered to be experimental use with caution!</strong>
+ * <strong>Note: This component is still considered to be experimental, use with caution!</strong>
  * <h2>Configuration</h2>
  * You can configure various aspects of this factory.
  *
@@ -70,8 +70,8 @@ import org.slf4j.LoggerFactory;
  * <ol>
  * <li>If the property {@code aether.syncContext.redisson.configFile} is set and the file at that
  * specific path does not exist, an exception is thrown otherwise load it.</li>
- * <li>If no configuration file path is provided, load default from <code>${maven.conf}/maven-resolver-redisson.yaml</code>,
- * but ignore if it does not exist.</li>
+ * <li>If no configuration file path is provided, load default from
+ * <code>${maven.conf}/maven-resolver-redisson.yaml</code>, but ignore if it does not exist.</li>
  * <li>If no configuration file is available at all, Redisson is configured with a single server pointing
  * to {@code redis://localhost:6379} with client name {@code maven-resolver}.</li>
  * </ol>

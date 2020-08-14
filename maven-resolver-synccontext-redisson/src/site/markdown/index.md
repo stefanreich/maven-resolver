@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-<span style="color: red; font-size: 16pt">***Note***: *This component is still considered to be experimental use with caution!*</span>
+<span style="color: red; font-size: 16pt">***Note***: *This component is still considered to be experimental, use with caution!*</span>
 
 The Redisson Sync Context is a Redisson-based distributed locks factory for Maven Resolver on top
 of Redis to provide a fast, concurrent-safe access from one or multiple Maven instances to the
