@@ -25,7 +25,7 @@ The Redisson Sync Context is a Redisson-based distributed locks factory for Mave
 of Redis to provide a fast, concurrent-safe access from one or multiple Maven instances to the
 same local Maven repository.
 
-For further details of the factory read the [Javadoc](./apidocs/org/eclipse/aether/synccontext/RedissonSyncContextFactory.html).
+For further details about the factory read the [Javadoc](./apidocs/org/eclipse/aether/synccontext/RedissonSyncContextFactory.html).
 
 ## Open Issues/Notes
 
@@ -42,7 +42,7 @@ For further details of the factory read the [Javadoc](./apidocs/org/eclipse/aeth
 - Clone Maven Resolver, switch to `MRESOLVER-131` branch and perform `mvn install`
 - Clone Maven, switch to `master` branch, change the Resolver version in Maven's parent POM: `1.5.1-SNAPSHOT`
 - Extract `apache-maven-3.7.0-SNAPSHOT-bin.tar.gz` to a location of your choice
-- Modify `${maven.home}/bin/m2.conf` and add `optionally ${maven.home}/lib/ext/redisson/*.jar`
+- Modify `${maven.home}/bin/m2.conf` by adding `optionally ${maven.home}/lib/ext/redisson/*.jar`
   right after the `${maven.home}/conf/logging` line
 - Add/modify the following entries in `${maven.home}/conf/logging/simplelogger.properties`:
       ```
@@ -96,9 +96,9 @@ For further details of the factory read the [Javadoc](./apidocs/org/eclipse/aeth
 ## Configuration Options
 
 Option | Type | Description | Default Value
---- | --- | --- | --- | --- 
+--- | --- | --- | --- | ---
 `aether.syncContext.redisson.configFile` | String | Path to a Redisson configuration file in YAML format. Read [official documentation](https://github.com/redisson/redisson/wiki/2.-Configuration) for details. | `${maven.home}/conf/maven-resolver-redisson.yaml`
-`aether.syncContext.redisson.discriminator` | String | A discriminator uniquely identifying a host and repo combination. If the generation of the default value fails, it will use `sha1('default:${maven.repo.local}')` or as last resort `sha1('default')`. | `sha1('${hostname}:${maven.repo.local}')`
+`aether.syncContext.redisson.discriminator` | String | A discriminator uniquely identifying a host and repo pair. If the generation of the default value fails, it will use `sha1('')`. | `sha1('${hostname:-localhost}:${maven.repo.local}')`
 
 ## Set Configuration from Apache Maven
 

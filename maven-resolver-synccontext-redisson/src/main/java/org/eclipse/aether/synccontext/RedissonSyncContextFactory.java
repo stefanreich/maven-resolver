@@ -58,10 +58,49 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A factory to create synchronization contexts. This implementation uses Redis, more specifically
- * its {@link RReadWriteLock}. It locks -- very fine-grained -- down to an artifact/metadata version
- * if required. <br>
- * This factory is considered experimental and is intended to be used as a singleton.
+ * A singleton factory to create synchronization contexts. This implementation uses Redisson, more
+ * specifically its {@link RReadWriteLock}. It locks down to an artifact/metadata version if required.
+ * <p>
+ * <strong>Note: This component is still considered to be experimental use with caution!</strong>
+ * <h2>Configuration</h2>
+ * You can configure various aspects of this factory.
+ *
+ * <h3>Redisson Client</h3>
+ * To fully configure the Redisson client, this factory uses the following staggered approach:
+ * <ol>
+ * <li>If the property {@code aether.syncContext.redisson.configFile} is set and the file at that
+ * specific path does not exist, an exception is thrown otherwise load it.</li>
+ * <li>If no configuration file path is provided, load default from <code>${maven.conf}/maven-resolver-redisson.yaml</code>,
+ * but ignore if it does not exist.</li>
+ * <li>If no configuration file is available at all, Redisson is configured with a single server pointing
+ * to {@code redis://localhost:6379} with client name {@code maven-resolver}.</li>
+ * </ol>
+ * <br>
+ * Please note that an invalid confguration file results in an exception too.
+ *
+ * <h3>Discrimination</h3>
+ * You may freely use a single Redis instance to serve multiple Maven instances, on multiple hosts
+ * with shared or distinct repositories. Every sync context instance will generate a unique discriminator
+ * which identifies each host paired with the repository currently accessed. The following staggered
+ * approach is used:
+ * <ol>
+ * <li>Determine hostname, if not possible use {@code localhost}.</li>
+ * <li>If the property {@code aether.syncContext.redisson.discriminator} is set, use it and skip
+ * the remaining steps.</li>
+ * <li>Concat hostname with the path of the local repository: <code>${hostname}:${maven.repo.local}</code></li>
+ * <li>Calculate the SHA-1 digest of this value. If that fails use the static digest of an empty string.</li>
+ * </ol>
+ *
+ * <h2>Key Composition</h2>
+ * Each lock is assigned a unique key in the configured Redis instance which has the following pattern:
+ * <code>maven:resolver:${discriminator}:${artifact|metadata}</code>.
+ * <ul>
+ * <li><code>${artifact}</code> will
+ * always resolve to <code>artifact:${groupId}:${artifactId}:${baseVersion}</code>.</li>
+ * <li><code>${metadata}</code> will resolve to one of <code>metadata:${groupId}:${artifactId}:${version}</code>,
+ * <code>metadata:${groupId}:${artifactId}</code>, <code>metadata:${groupId}</code>,
+ * <code>metadata:</code>.</li>
+ * </ul>
  */
 @Named
 @Priority( Integer.MAX_VALUE )
@@ -73,8 +112,8 @@ public class RedissonSyncContextFactory
     private static final String DEFAULT_CONFIG_FILE_NAME = "maven-resolver-redisson.yaml";
     private static final String DEFAULT_REDIS_ADDRESS = "redis://localhost:6379";
     private static final String DEFAULT_CLIENT_NAME = "maven-resolver";
-    private static final String DEFAULT_DISCRIMINATOR = "default";
-    private static final String DEFAULT_DISCRIMINATOR_DIGEST = "2923f6fa36614586ea09b4424b438915cc1b9b67";
+    private static final String DEFAULT_HOSTNAME = "localhost";
+    private static final String DEFAULT_DISCRIMINATOR_DIGEST = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
 
     private static final String CONFIG_PROP_CONFIG_FILE = "aether.syncContext.redisson.configFile";
 
@@ -82,14 +121,14 @@ public class RedissonSyncContextFactory
 
     // We are in a singleton so these should exist only once!
     private RedissonClient redissonClient;
-    private String localhostDiscriminator;
+    private String hostname;
 
     public RedissonSyncContextFactory()
     {
         LOGGER.trace( "TCCL: {}", Thread.currentThread().getContextClassLoader() );
         LOGGER.trace( "CCL: {}", getClass().getClassLoader() );
         this.redissonClient = createRedissonClient();
-        this.localhostDiscriminator = createLocalhostDiscriminator();
+        this.hostname = getHostname();
     }
 
     private RedissonClient createRedissonClient()
@@ -148,7 +187,7 @@ public class RedissonSyncContextFactory
         return redissonClient;
     }
 
-    private String createLocalhostDiscriminator()
+    private String getHostname()
     {
         try
         {
@@ -156,16 +195,16 @@ public class RedissonSyncContextFactory
         }
         catch ( UnknownHostException e )
         {
-            LOGGER.warn( "Failed to calculate localhost descriminator, using '{}'",
-                         DEFAULT_DISCRIMINATOR, e );
-            return DEFAULT_DISCRIMINATOR;
+            LOGGER.warn( "Failed to get hostname, using '{}'",
+                         DEFAULT_HOSTNAME, e );
+            return DEFAULT_HOSTNAME;
         }
     }
 
     public SyncContext newInstance( RepositorySystemSession session, boolean shared )
     {
         LOGGER.trace( "Instance: {}", this );
-        return new RedissonSyncContext( session, localhostDiscriminator, redissonClient, shared );
+        return new RedissonSyncContext( session, hostname, redissonClient, shared );
     }
 
     @PreDestroy
@@ -179,24 +218,24 @@ public class RedissonSyncContextFactory
         implements SyncContext
     {
 
-        private static final String CONFIG_DISCRIMINATOR = "aether.syncContext.redisson.discriminator";
+        private static final String CONFIG_PROP_DISCRIMINATOR = "aether.syncContext.redisson.discriminator";
 
         private static final String KEY_PREFIX = "maven:resolver:";
 
         private static final Logger LOGGER = LoggerFactory.getLogger( RedissonSyncContext.class );
 
         private final RepositorySystemSession session;
-        private final String localhostDiscriminator;
+        private final String hostname;
         private final RedissonClient redissonClient;
         private final boolean shared;
         private final Map<String, RReadWriteLock> locks = new LinkedHashMap<>();
 
-        private RedissonSyncContext( RepositorySystemSession session, String localhostDiscriminator,
-                RedissonClient redisson, boolean shared )
+        private RedissonSyncContext( RepositorySystemSession session, String hostname,
+                RedissonClient redissonClient, boolean shared )
         {
             this.session = session;
-            this.localhostDiscriminator = localhostDiscriminator;
-            this.redissonClient = redisson;
+            this.hostname = hostname;
+            this.redissonClient = redissonClient;
             this.shared = shared;
         }
 
@@ -221,26 +260,20 @@ public class RedissonSyncContextFactory
             {
                 for ( Metadata metadata : metadatas )
                 {
-                    String key;
+                    StringBuilder key = new StringBuilder( "metadata:" );
                     if ( !metadata.getGroupId().isEmpty() )
                     {
-                        StringBuilder keyBuilder = new StringBuilder( "metadata:" );
-                        keyBuilder.append( metadata.getGroupId() );
+                        key.append( metadata.getGroupId() );
                         if ( !metadata.getArtifactId().isEmpty() )
                         {
-                            keyBuilder.append( ':' ).append( metadata.getArtifactId() );
+                            key.append( ':' ).append( metadata.getArtifactId() );
                             if ( !metadata.getVersion().isEmpty() )
                             {
-                                keyBuilder.append( ':' ).append( metadata.getVersion() );
+                                key.append( ':' ).append( metadata.getVersion() );
                             }
                         }
-                        key = keyBuilder.toString();
                     }
-                    else
-                    {
-                        key = "metadata:ROOT";
-                    }
-                    keys.add( key );
+                    keys.add( key.toString() );
                 }
             }
 
@@ -253,7 +286,6 @@ public class RedissonSyncContextFactory
             LOGGER.trace( "Using Redis key discriminator '{}' during this session", discriminator );
 
             LOGGER.trace( "Need {} {} lock(s) for {}", keys.size(), shared ? "read" : "write", keys );
-
             int acquiredLockCount = 0;
             int reacquiredLockCount = 0;
             for ( String key : keys )
@@ -284,13 +316,13 @@ public class RedissonSyncContextFactory
 
         private String createDiscriminator()
         {
-            String discriminator = ConfigUtils.getString( session, null, CONFIG_DISCRIMINATOR );
+            String discriminator = ConfigUtils.getString( session, null, CONFIG_PROP_DISCRIMINATOR );
 
             if ( discriminator == null || discriminator.isEmpty() )
             {
 
                 File basedir = session.getLocalRepository().getBasedir();
-                discriminator = localhostDiscriminator + ":" + basedir;
+                discriminator = hostname + ":" + basedir;
                 try
                 {
                     Map<String, Object> checksums = ChecksumUtils.calc(
